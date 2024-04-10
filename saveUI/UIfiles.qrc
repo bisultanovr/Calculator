@@ -1,0 +1,9 @@
+<RCC>
+  <qresource prefix="icons">
+    <file>Icons/calculate_black_24dp.svg</file>
+    <file>Icons/add_white_24dp.svg</file>
+    <file>Icons/backspace_white_24dp.svg</file>
+    <file>Icons/close_white_24dp.svg</file>
+    <file>Icons/remove_white_24dp.svg</file>
+  </qresource>
+</RCC>
