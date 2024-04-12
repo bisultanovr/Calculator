@@ -69,7 +69,6 @@ class Ui_MainWindow(object):
 "border: none;\n"
 "margin-right: 7px;\n"
 "")
-        self.EnterReg.setMaxLength(18)
         self.EnterReg.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.EnterReg.setReadOnly(True)
         self.EnterReg.setObjectName("EnterReg")

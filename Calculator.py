@@ -14,6 +14,11 @@ import math
 # если оно есть, то всё выглядит как с самого начала.
 #
 
+# Нужно сделать:
+# Разобраться со сложением.
+# Переделать MemoryReg.
+# Добавить оставшиеся операции.
+
 
 class Calculator(QMainWindow):
     def __init__(self):
@@ -55,8 +60,16 @@ class Calculator(QMainWindow):
         self.multiply_char = '×'
         self.divide_char = '÷'
 
+        # Счётчик введённых цифр
+        self.digits_count = 0
+
+        # Размер шрифта регистра ввода по умолчанию
+        self.default_entry_font_size = 38
+
         # Ввод операнда. Перед вводом очередного операнда (True) выполняем clear_entry
         self.enter_state = True
+        # Если True, то можем выполнить операцию, иначе - не можем
+        self.operand_is_changed = False
         # Выражение вычислено, перед вводом следующего числа выполняется clear_all
         self.expression_evaluated = False
 
@@ -87,6 +100,11 @@ class Calculator(QMainWindow):
         self.btn_c.clicked.connect(self.clear_all)
 
     def on_btn_clicked_num(self, num):
+        if self.digits_count > 16:
+            return
+
+        self.digits_count += 1
+
         # Ввод operand
         if self.expression_evaluated:
             self.clear_all()
@@ -96,6 +114,8 @@ class Calculator(QMainWindow):
             self.EnterReg.clear()
             self.result = 0
         self.enter_state = False
+
+        self.operand_is_changed = True
 
         if self.int_part:
             self.result = self.result * 10 + int(num)
@@ -108,30 +128,33 @@ class Calculator(QMainWindow):
         new_text = current_text + str(num)
         self.EnterReg.setText(new_text)
 
+        # self.result = float(self.EnterReg.text())
+
+        # Регулируем размер регистра вывода
+        self.adjust_entry_font_size()
+
     def on_btn_clicked_backspace(self):
-        erasable_char = None
-
         if not self.enter_state:        # Если пытаемся стереть уже полученный результат, то clear_all
-            if not self.int_part:       # Стираем из дробной части
-                erasable_char = self.result * 10 ** self.fractional_part % 10
-                self.result = self.result - erasable_char / 10 ** self.fractional_part
+            erased_char = self.EnterReg.text()[-1]
+            if erased_char != '.' and int(erased_char) in range(int('0'), int('9') + 1):
+                self.digits_count -= 1
+            else:
+                self.int_part = True
 
-                self.fractional_part -= 1
-                if self.fractional_part == 0:
-                    self.int_part = True
-                    self.result = int(self.result)
+            self.EnterReg.setText(self.EnterReg.text()[:-1])
+            if self.EnterReg.text() != "" and self.EnterReg.text() != "-":
+                self.result = float(self.EnterReg.text())
+            else:
+                self.result = 0
 
-                # Если дробная часть нулевая, она отбрасывается
-                self.discard_zero_fractional_part()
+            # Если дробная часть нулевая, она отбрасывается
+            self.discard_zero_fractional_part()
 
-                self.EnterReg.setText(str(self.result))
-            else:                       # Стираем из целой части
-                erasable_char = self.result % 10
-                self.result = (self.result - erasable_char) // 10
-                self.EnterReg.setText(str(self.result))
+            if self.result == 0:
+                self.clear_entry()
 
-                if self.result == 0:
-                    self.clear_entry()
+            # Регулируем размер регистра вывода
+            self.adjust_entry_font_size()
         else:
             self.clear_all()
 
@@ -141,16 +164,17 @@ class Calculator(QMainWindow):
         self.enter_state = True
         self.expression_evaluated = False
 
-        # Следующее вводимое число будет целым
+        # вводимое число будет целым
         self.int_part = True
         self.fractional_part = 1
 
         # Если дробная часть нулевая, она отбрасывается
         self.discard_zero_fractional_part()
 
-        self.operand1 = self.result
+        self.operand2 = self.result
+
         # Выполняем операцию, если введён второй операнд
-        if not self.enter_state:
+        if self.operand_is_changed:
             if operator is self.add_char:
                 self.result = self.operand1 + self.operand2
             elif operator is self.sub_char:
@@ -160,6 +184,8 @@ class Calculator(QMainWindow):
             elif operator is self.divide_char:
                 self.result = self.operand1 / self.operand2
 
+        self.operand1 = self.result
+
         # Если дробная часть нулевая, она отбрасывается
         self.discard_zero_fractional_part()
 
@@ -167,6 +193,8 @@ class Calculator(QMainWindow):
 
         self.MemoryReg.setText(f"{self.operand1} {self.operator}")
         self.EnterReg.setText(str(self.result))
+
+        self.operand_is_changed = False
 
     def calculate_result(self):
         self.enter_state = True
@@ -198,6 +226,7 @@ class Calculator(QMainWindow):
             self.MemoryReg.setText(f"{self.operand1} {self.operator} {self.operand2} = ")
             self.EnterReg.setText(str(self.result))
             self.expression_evaluated = True
+            self.operand_is_changed = True
             self.operator = None
         else:
             self.MemoryReg.setText(f"{self.operand1} = ")
@@ -205,6 +234,9 @@ class Calculator(QMainWindow):
 
         self.operand1 = self.result
         self.operand2 = 0
+
+        # Регулируем размер регистра вывода
+        self.adjust_entry_font_size()
 
     def on_btn_clicked_square(self):
         self.result **= 2
@@ -223,30 +255,64 @@ class Calculator(QMainWindow):
             current_text = self.EnterReg.text()
             self.EnterReg.setText(current_text + '.')
 
-            if self.input_operand:
-                self.expression[0] += '.'
-            else:
-                self.expression[2] += '.'
+            # Регулируем размер регистра вывода
+            self.adjust_entry_font_size()
 
     def on_btn_clicked_switch_sign(self):
         self.result = -self.result
         self.EnterReg.setText(str(self.result))
 
+        # Регулируем размер регистра вывода
+        self.adjust_entry_font_size()
+
     def clear_entry(self):
         self.enter_state = True
         self.int_part = True
+        self.operand_is_changed = False
         self.EnterReg.setText("0")
         self.operand2 = 0
         self.result = 0
+        self.digits_count = 0
+
+        # Регулируем размер регистра вывода
+        self.adjust_entry_font_size()
 
     def clear_all(self):
         self.enter_state = True
         self.int_part = True
+        self.operand_is_changed = False
         self.EnterReg.setText("0")
         self.MemoryReg.clear()
         self.operand1 = 0
         self.operand2 = 0
         self.result = 0
+        self.digits_count = 0
+
+        # Регулируем размер регистра вывода
+        self.adjust_entry_font_size()
+
+    def get_entry_text_width(self) -> int:
+        return self.EnterReg.fontMetrics().boundingRect(self.EnterReg.text()).width()
+
+    def get_temp_text_width(self) -> int:
+        return self.MemoryReg.fontMetrics().boundingRect(
+            self.MemoryReg.text()).width()
+
+    def adjust_entry_font_size(self):
+        font_size = self.default_entry_font_size
+
+        while self.get_entry_text_width() > self.EnterReg.width() - 15:
+            font_size -= 1
+            self.EnterReg.setStyleSheet('font-size: ' + str(font_size) + 'pt; border: none;')
+
+        font_size = 1
+        while self.get_entry_text_width() < self.EnterReg.width() - 60:
+            font_size += 1
+
+            if font_size > self.default_entry_font_size:
+                break
+
+            self.EnterReg.setStyleSheet('font-size: ' + str(font_size) + 'pt; border: none;')
 
     def discard_zero_fractional_part(self):
         if self.result - int(self.result) == 0:
