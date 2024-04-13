@@ -4,6 +4,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.uic import loadUi
 from CalculatorUI import Ui_MainWindow  # Импортируем сгенерированный файл
 import math
+from decimal import *
 
 # Ввести состояния: ввод первого операнда и ввод второго операнда.
 # Нажатие кнопки вычисления приводит к сбросу состояний, то есть приходим в начальное состояние 1.
@@ -95,6 +96,9 @@ class Calculator(QMainWindow):
         self.btn_multiply.clicked.connect(lambda: self.on_btn_clicked_operation(self.multiply_char))
         self.btn_divide.clicked.connect(lambda: self.on_btn_clicked_operation(self.divide_char))
         self.btn_square.clicked.connect(self.on_btn_clicked_square)
+        self.btn_sqrt.clicked.connect(self.on_btn_clicked_sqrt)
+        self.btn_opposite.clicked.connect(self.on_btn_clicked_opposite)
+        self.btn_persent.clicked.connect(self.on_btn_clicked_persent)
         self.btn_result.clicked.connect(self.calculate_result)
         self.btn_ce.clicked.connect(self.clear_entry)
         self.btn_c.clicked.connect(self.clear_all)
@@ -117,18 +121,18 @@ class Calculator(QMainWindow):
 
         self.operand_is_changed = True
 
-        if self.int_part:
-            self.result = self.result * 10 + int(num)
-        else:
-            self.fractional_part += 1
-            self.result = self.result + num / 10 ** self.fractional_part
-            self.result = int(self.result * 10 ** self.fractional_part) / 10 ** self.fractional_part
+        # if self.int_part:
+        #     self.result = self.result * 10 + int(num)
+        # else:
+        #     self.fractional_part += 1
+        #     self.result = self.result + num / 10 ** self.fractional_part
+        #     self.result = int(self.result * 10 ** self.fractional_part) / 10 ** self.fractional_part
 
         current_text = self.EnterReg.text()
         new_text = current_text + str(num)
         self.EnterReg.setText(new_text)
 
-        # self.result = float(self.EnterReg.text())
+        self.result = float(self.EnterReg.text())
 
         # Регулируем размер регистра вывода
         self.adjust_entry_font_size()
@@ -159,8 +163,6 @@ class Calculator(QMainWindow):
             self.clear_all()
 
     def on_btn_clicked_operation(self, operator):
-        self.operator = operator
-
         self.enter_state = True
         self.expression_evaluated = False
 
@@ -175,16 +177,18 @@ class Calculator(QMainWindow):
 
         # Выполняем операцию, если введён второй операнд
         if self.operand_is_changed:
-            if operator is self.add_char:
-                self.result = self.operand1 + self.operand2
-            elif operator is self.sub_char:
-                self.result = self.operand1 - self.operand2
-            elif operator is self.multiply_char:
-                self.result = self.operand1 * self.operand2
-            elif operator is self.divide_char:
-                self.result = self.operand1 / self.operand2
+            if self.operator is self.add_char:
+                self.result = Decimal(str(self.operand1)) + Decimal(str(self.operand2))
+            elif self.operator is self.sub_char:
+                self.result = Decimal(str(self.operand1)) - Decimal(str(self.operand2))
+            elif self.operator is self.multiply_char:
+                self.result = Decimal(str(self.operand1)) * Decimal(str(self.operand2))
+            elif self.operator is self.divide_char:
+                self.result = Decimal(str(self.operand1)) / Decimal(str(self.operand2))
 
         self.operand1 = self.result
+
+        self.operator = operator
 
         # Если дробная часть нулевая, она отбрасывается
         self.discard_zero_fractional_part()
@@ -209,13 +213,13 @@ class Calculator(QMainWindow):
         self.operand2 = self.result
         # вычисляем выражение
         if self.operator is self.add_char:
-            self.result = self.operand1 + self.operand2
+            self.result = Decimal(str(self.operand1)) + Decimal(str(self.operand2))
         elif self.operator is self.sub_char:
-            self.result = self.operand1 - self.operand2
+            self.result = Decimal(str(self.operand1)) - Decimal(str(self.operand2))
         elif self.operator is self.multiply_char:
-            self.result = self.operand1 * self.operand2
+            self.result = Decimal(str(self.operand1)) * Decimal(str(self.operand2))
         elif self.operator is self.divide_char:
-            self.result = self.operand1 / self.operand2
+            self.result = Decimal(str(self.operand1)) / Decimal(str(self.operand2))
         else:
             self.operator = None
 
@@ -229,7 +233,7 @@ class Calculator(QMainWindow):
             self.operand_is_changed = True
             self.operator = None
         else:
-            self.MemoryReg.setText(f"{self.operand1} = ")
+            self.MemoryReg.setText(f"{self.result} = ")
             self.EnterReg.setText(str(self.result))
 
         self.operand1 = self.result
@@ -239,8 +243,49 @@ class Calculator(QMainWindow):
         self.adjust_entry_font_size()
 
     def on_btn_clicked_square(self):
+        # Если дробная часть нулевая, она отбрасывается
+        self.discard_zero_fractional_part()
+
         self.result **= 2
         self.EnterReg.setText(str(self.result))
+
+        # Регулируем размер регистра вывода
+        self.adjust_entry_font_size()
+
+    def on_btn_clicked_sqrt(self):
+        self.result = math.sqrt(self.result)
+
+        # Если дробная часть нулевая, она отбрасывается
+        self.discard_zero_fractional_part()
+
+        self.EnterReg.setText(str(self.result))
+
+        # Регулируем размер регистра вывода
+        self.adjust_entry_font_size()
+
+    def on_btn_clicked_opposite(self):
+        self.result = 1 / self.result
+
+        # Если дробная часть нулевая, она отбрасывается
+        self.discard_zero_fractional_part()
+
+        self.EnterReg.setText(str(self.result))
+
+        # Регулируем размер регистра вывода
+        self.adjust_entry_font_size()
+
+    def on_btn_clicked_persent(self):
+        self.result = self.operand1 * (self.result / 100)
+
+        # Если дробная часть нулевая, она отбрасывается
+        self.discard_zero_fractional_part()
+
+        self.EnterReg.setText(str(self.result))
+
+        self.enter_state = True
+
+        # Регулируем размер регистра вывода
+        self.adjust_entry_font_size()
 
     def on_btn_clicked_convertion(self):
         if self.expression_evaluated:
