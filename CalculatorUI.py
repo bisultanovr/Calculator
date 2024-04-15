@@ -59,6 +59,7 @@ class Ui_MainWindow(object):
         sizePolicy.setHeightForWidth(self.EnterReg.sizePolicy().hasHeightForWidth())
         self.EnterReg.setSizePolicy(sizePolicy)
         self.EnterReg.setMinimumSize(QtCore.QSize(0, 80))
+        self.EnterReg.setMaxLength(256)
         font = QtGui.QFont()
         font.setFamily("Segoe UI")
         font.setPointSize(38)

@@ -44,7 +44,7 @@ class Calculator(QMainWindow):
 
         # Полное выражение, которое будет выводиться в MemoryReg
         # 0 - operand1, 1 - operator, 2 - operand2
-        self.expression = ["", "", ""]
+        self.expression = ["", ""]
 
         # Выражение, которое будет выводиться в MemoryReg
         # Это будет либо просто число, либо sqr(x), либо √x, либо 1/(x)
@@ -71,8 +71,64 @@ class Calculator(QMainWindow):
         self.enter_state = True
         # Если True, то можем выполнить операцию, иначе - не можем
         self.operand_is_changed = False
-        # Выражение вычислено, перед вводом следующего числа выполняется clear_all
+        # True - выражение вычислено, перед вводом следующего числа выполняется clear_all
         self.expression_evaluated = False
+
+        # Если True, то при вводе кнопки будут разблокированы
+        self.is_exception = False
+
+        # Сообщения исключений
+        self.division_by_zero_mess = "Деление на ноль невозможно"
+        self.undefined_result_mess = "Результат не определён"
+        self.overflow_mess = "Переполнение"
+
+        self.num_buttons_en_style_sheet = ("QPushButton {\n"
+"    font-family: \"Segoe Ui Light\";\n"
+"    font-size: 13pt;\n"
+"    background-color: #3b3b3b;\n"
+"    border: none;\n"
+"    border-radius: 5px;\n"
+"}\n"
+"\n"
+"QPushButton:hover {\n"
+"    background-color: #323232;\n"
+"}\n"
+"\n"
+"QPushButton:pressed {\n"
+"    background-color: #2f2f2f;\n"
+"}")
+
+        self.num_buttons_dis_style_sheet = ("QPushButton {\n"
+"    font-family: \"Segoe Ui Light\";\n"
+"    font-size: 13pt;\n"
+"    background-color: #2f2f2f;\n"
+"    border: none;\n"
+"    border-radius: 5px;\n"
+"}")
+
+        self.op_buttons_en_style_sheet = ("QPushButton {\n"
+"    font-family: \"Segoe Ui Light\";\n"
+"    font-size: 13pt;\n"
+"    background-color: #323232;\n"
+"    border: none;\n"
+"    border-radius: 5px;\n"
+"}\n"
+"\n"
+"QPushButton:hover {\n"
+"    background-color: #3b3b3b;\n"
+"}\n"
+"\n"
+"QPushButton:pressed {\n"
+"    background-color: #2f2f2f;\n"
+"}")
+
+        self.op_buttons_dis_style_sheet = ("QPushButton {\n"
+"    font-family: \"Segoe Ui Light\";\n"
+"    font-size: 13pt;\n"
+"    background-color: #2f2f2f;\n"
+"    border: none;\n"
+"    border-radius: 5px;\n"
+"}")
 
         self.MemoryReg.clear()
         self.clear_entry()
@@ -104,8 +160,12 @@ class Calculator(QMainWindow):
         self.btn_c.clicked.connect(self.clear_all)
 
     def on_btn_clicked_num(self, num):
-        if self.digits_count > 16:
+        if self.digits_count >= 16:
             return
+
+        if self.is_exception:               # Разблокировать кнопки
+            self.disable_buttons(False)
+        self.is_exception = False
 
         self.digits_count += 1
 
@@ -121,13 +181,6 @@ class Calculator(QMainWindow):
 
         self.operand_is_changed = True
 
-        # if self.int_part:
-        #     self.result = self.result * 10 + int(num)
-        # else:
-        #     self.fractional_part += 1
-        #     self.result = self.result + num / 10 ** self.fractional_part
-        #     self.result = int(self.result * 10 ** self.fractional_part) / 10 ** self.fractional_part
-
         current_text = self.EnterReg.text()
         new_text = current_text + str(num)
         self.EnterReg.setText(new_text)
@@ -138,6 +191,13 @@ class Calculator(QMainWindow):
         self.adjust_entry_font_size()
 
     def on_btn_clicked_backspace(self):
+        if self.is_exception:               # Разблокировать кнопки
+            self.disable_buttons(False)
+        self.is_exception = False
+
+        if 'e' in str(self.EnterReg.text()):
+            return
+
         if not self.enter_state:        # Если пытаемся стереть уже полученный результат, то clear_all
             erased_char = self.EnterReg.text()[-1]
             if erased_char != '.' and int(erased_char) in range(int('0'), int('9') + 1):
@@ -166,6 +226,8 @@ class Calculator(QMainWindow):
         self.enter_state = True
         self.expression_evaluated = False
 
+        self.digits_count = 0
+
         # вводимое число будет целым
         self.int_part = True
         self.fractional_part = 1
@@ -175,16 +237,26 @@ class Calculator(QMainWindow):
 
         self.operand2 = self.result
 
-        # Выполняем операцию, если введён второй операнд
-        if self.operand_is_changed:
-            if self.operator is self.add_char:
-                self.result = Decimal(str(self.operand1)) + Decimal(str(self.operand2))
-            elif self.operator is self.sub_char:
-                self.result = Decimal(str(self.operand1)) - Decimal(str(self.operand2))
-            elif self.operator is self.multiply_char:
-                self.result = Decimal(str(self.operand1)) * Decimal(str(self.operand2))
-            elif self.operator is self.divide_char:
-                self.result = Decimal(str(self.operand1)) / Decimal(str(self.operand2))
+        try:
+            # Выполняем операцию, если введён второй операнд
+            if self.operand_is_changed:
+                if self.operator is self.add_char:
+                    self.result = Decimal(str(self.operand1)) + Decimal(str(self.operand2))
+                elif self.operator is self.sub_char:
+                    self.result = Decimal(str(self.operand1)) - Decimal(str(self.operand2))
+                elif self.operator is self.multiply_char:
+                    self.result = Decimal(str(self.operand1)) * Decimal(str(self.operand2))
+                elif self.operator is self.divide_char:
+                    self.result = Decimal(str(self.operand1)) / Decimal(str(self.operand2))
+        except ZeroDivisionError:
+            self.exception_handling(self.division_by_zero_mess)
+            return
+        except OverflowError:
+            self.exception_handling(self.overflow_mess)
+            return
+        except ValueError:
+            self.exception_handling(self.undefined_result_mess)
+            return
 
         self.operand1 = self.result
 
@@ -196,12 +268,19 @@ class Calculator(QMainWindow):
         self.operand2 = 0
 
         self.MemoryReg.setText(f"{self.operand1} {self.operator}")
-        self.EnterReg.setText(str(self.result))
+        self.print_result()
 
         self.operand_is_changed = False
 
+        # Регулируем размер регистра вывода
+        self.adjust_entry_font_size()
+
     def calculate_result(self):
         self.enter_state = True
+
+        if self.is_exception:               # Разблокировать кнопки
+            self.disable_buttons(False)
+        self.is_exception = False
 
         # Ввод целого числа
         self.int_part = True
@@ -211,24 +290,37 @@ class Calculator(QMainWindow):
         self.discard_zero_fractional_part()
 
         self.operand2 = self.result
-        # вычисляем выражение
-        if self.operator is self.add_char:
-            self.result = Decimal(str(self.operand1)) + Decimal(str(self.operand2))
-        elif self.operator is self.sub_char:
-            self.result = Decimal(str(self.operand1)) - Decimal(str(self.operand2))
-        elif self.operator is self.multiply_char:
-            self.result = Decimal(str(self.operand1)) * Decimal(str(self.operand2))
-        elif self.operator is self.divide_char:
-            self.result = Decimal(str(self.operand1)) / Decimal(str(self.operand2))
-        else:
-            self.operator = None
+
+        try:
+            # вычисляем выражение
+            if self.operator is self.add_char:
+                self.result = Decimal(str(self.operand1)) + Decimal(str(self.operand2))
+            elif self.operator is self.sub_char:
+                self.result = Decimal(str(self.operand1)) - Decimal(str(self.operand2))
+            elif self.operator is self.multiply_char:
+                self.result = Decimal(str(self.operand1)) * Decimal(str(self.operand2))
+            elif self.operator is self.divide_char:
+                self.result = Decimal(str(self.operand1)) / Decimal(str(self.operand2))
+            else:
+                self.operator = None
+        except ZeroDivisionError:
+            self.exception_handling(self.division_by_zero_mess)
+            return
+        except OverflowError:
+            self.exception_handling(self.overflow_mess)
+            return
+        except ValueError:
+            self.exception_handling(self.undefined_result_mess)
+            return
 
         # Если дробная часть нулевая, она отбрасывается
         self.discard_zero_fractional_part()
 
         if self.operator is not None:
             self.MemoryReg.setText(f"{self.operand1} {self.operator} {self.operand2} = ")
-            self.EnterReg.setText(str(self.result))
+
+            self.print_result()
+
             self.expression_evaluated = True
             self.operand_is_changed = True
             self.operator = None
@@ -242,12 +334,25 @@ class Calculator(QMainWindow):
         # Регулируем размер регистра вывода
         self.adjust_entry_font_size()
 
+    def print_result(self):
+        result_str = str(abs(self.result))
+        int_digits = len(result_str.split('.')[0])
+        dec_digits = len(result_str.split('.')[1]) if '.' in result_str else 0
+        if int_digits + dec_digits > 16:
+            self.EnterReg.setText(f"{self.result:.15e}")
+        else:
+            self.EnterReg.setText(str(self.result))
     def on_btn_clicked_square(self):
         # Если дробная часть нулевая, она отбрасывается
         self.discard_zero_fractional_part()
 
-        self.result **= 2
-        self.EnterReg.setText(str(self.result))
+        try:
+            self.result = self.result ** 2
+        except OverflowError:
+            self.exception_handling(self.overflow_mess)
+            return
+
+        self.print_result()
 
         # Регулируем размер регистра вывода
         self.adjust_entry_font_size()
@@ -258,18 +363,22 @@ class Calculator(QMainWindow):
         # Если дробная часть нулевая, она отбрасывается
         self.discard_zero_fractional_part()
 
-        self.EnterReg.setText(str(self.result))
+        self.print_result()
 
         # Регулируем размер регистра вывода
         self.adjust_entry_font_size()
 
     def on_btn_clicked_opposite(self):
-        self.result = 1 / self.result
+        try:
+            self.result = 1 / self.result
+        except ZeroDivisionError:
+            self.exception_handling(self.division_by_zero_mess)
+            return
 
         # Если дробная часть нулевая, она отбрасывается
         self.discard_zero_fractional_part()
 
-        self.EnterReg.setText(str(self.result))
+        self.print_result()
 
         # Регулируем размер регистра вывода
         self.adjust_entry_font_size()
@@ -280,7 +389,7 @@ class Calculator(QMainWindow):
         # Если дробная часть нулевая, она отбрасывается
         self.discard_zero_fractional_part()
 
-        self.EnterReg.setText(str(self.result))
+        self.print_result()
 
         self.enter_state = True
 
@@ -310,7 +419,53 @@ class Calculator(QMainWindow):
         # Регулируем размер регистра вывода
         self.adjust_entry_font_size()
 
+    def exception_handling(self, exception_type: str):
+        self.is_exception = True
+        self.disable_buttons(True)
+
+        self.EnterReg.setText(exception_type)
+        # Регулируем размер регистра вывода
+        self.adjust_entry_font_size()
+
+        self.result = 0
+        self.expression_evaluated = True
+
+    def disable_buttons(self, is_disable: bool):
+        self.btn_point.setDisabled(is_disable)
+        self.btn_sign.setDisabled(is_disable)
+        self.btn_add.setDisabled(is_disable)
+        self.btn_sub.setDisabled(is_disable)
+        self.btn_multiply.setDisabled(is_disable)
+        self.btn_divide.setDisabled(is_disable)
+        self.btn_square.setDisabled(is_disable)
+        self.btn_sqrt.setDisabled(is_disable)
+        self.btn_opposite.setDisabled(is_disable)
+        self.btn_persent.setDisabled(is_disable)
+
+        op_style = self.op_buttons_dis_style_sheet
+        num_style = self.num_buttons_dis_style_sheet
+        if not is_disable:
+            op_style = self.op_buttons_en_style_sheet
+            num_style = self.num_buttons_en_style_sheet
+
+        self.set_disabled_buttons_color(op_style, num_style)
+
+    def set_disabled_buttons_color(self, op_style: str, num_style: str):
+        self.btn_point.setStyleSheet(num_style)
+        self.btn_sign.setStyleSheet(num_style)
+        self.btn_add.setStyleSheet(op_style)
+        self.btn_sub.setStyleSheet(op_style)
+        self.btn_multiply.setStyleSheet(op_style)
+        self.btn_divide.setStyleSheet(op_style)
+        self.btn_square.setStyleSheet(op_style)
+        self.btn_sqrt.setStyleSheet(op_style)
+        self.btn_opposite.setStyleSheet(op_style)
+        self.btn_persent.setStyleSheet(op_style)
+
     def clear_entry(self):
+        if self.is_exception:               # Разблокировать кнопки
+            self.disable_buttons(False)
+
         self.enter_state = True
         self.int_part = True
         self.operand_is_changed = False
@@ -323,6 +478,9 @@ class Calculator(QMainWindow):
         self.adjust_entry_font_size()
 
     def clear_all(self):
+        if self.is_exception:               # Разблокировать кнопки
+            self.disable_buttons(False)
+
         self.enter_state = True
         self.int_part = True
         self.operand_is_changed = False
