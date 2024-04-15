@@ -248,6 +248,7 @@ class Calculator(QMainWindow):
                     self.result = Decimal(str(self.operand1)) * Decimal(str(self.operand2))
                 elif self.operator is self.divide_char:
                     self.result = Decimal(str(self.operand1)) / Decimal(str(self.operand2))
+                    self.result = round(self.result, 16 - len(str(abs(self.result)).split('.')[0]))
         except ZeroDivisionError:
             self.exception_handling(self.division_by_zero_mess)
             return
@@ -301,6 +302,7 @@ class Calculator(QMainWindow):
                 self.result = Decimal(str(self.operand1)) * Decimal(str(self.operand2))
             elif self.operator is self.divide_char:
                 self.result = Decimal(str(self.operand1)) / Decimal(str(self.operand2))
+                self.result = round(self.result, 16 - len(str(abs(self.result)).split('.')[0]))
             else:
                 self.operator = None
         except ZeroDivisionError:
@@ -342,6 +344,7 @@ class Calculator(QMainWindow):
             self.EnterReg.setText(f"{self.result:.15e}")
         else:
             self.EnterReg.setText(str(self.result))
+
     def on_btn_clicked_square(self):
         # Если дробная часть нулевая, она отбрасывается
         self.discard_zero_fractional_part()
@@ -359,6 +362,7 @@ class Calculator(QMainWindow):
 
     def on_btn_clicked_sqrt(self):
         self.result = math.sqrt(self.result)
+        self.result = round(self.result, 16 - len(str(abs(self.result)).split('.')[0]))
 
         # Если дробная часть нулевая, она отбрасывается
         self.discard_zero_fractional_part()
