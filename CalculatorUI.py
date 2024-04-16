@@ -21,7 +21,7 @@ class Ui_MainWindow(object):
         MainWindow.setWindowIcon(icon)
         MainWindow.setStyleSheet("QWidget {\n"
 "    color: white;\n"
-"    background-color: #202020;\n"
+"    background-color: #2f2f2f;\n"
 "    font-family: \"Segoe UI\";\n"
 "    font-size: 16pt;\n"
 "    font-weight: 500;\n"

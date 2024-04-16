@@ -164,8 +164,8 @@ class Calculator(QMainWindow):
             return
 
         if self.is_exception:               # Разблокировать кнопки
-            self.disable_buttons(False)
-        self.is_exception = False
+            self.clear_all()
+            return
 
         self.digits_count += 1
 
@@ -191,9 +191,10 @@ class Calculator(QMainWindow):
         self.adjust_entry_font_size()
 
     def on_btn_clicked_backspace(self):
-        if self.is_exception:               # Разблокировать кнопки
-            self.disable_buttons(False)
-        self.is_exception = False
+        # if self.is_exception:               # Разблокировать кнопки
+        #     self.disable_buttons(False)
+        #     self.clear_all()
+        # self.is_exception = False
 
         if 'e' in str(self.EnterReg.text()):
             return
@@ -228,10 +229,6 @@ class Calculator(QMainWindow):
 
         self.digits_count = 0
 
-        # вводимое число будет целым
-        self.int_part = True
-        self.fractional_part = 1
-
         # Если дробная часть нулевая, она отбрасывается
         self.discard_zero_fractional_part()
 
@@ -248,6 +245,10 @@ class Calculator(QMainWindow):
                     self.result = Decimal(str(self.operand1)) * Decimal(str(self.operand2))
                 elif self.operator is self.divide_char:
                     self.result = Decimal(str(self.operand1)) / Decimal(str(self.operand2))
+
+                    # Если дробная часть нулевая, она отбрасывается
+                    self.discard_zero_fractional_part()
+
                     self.result = round(self.result, 16 - len(str(abs(self.result)).split('.')[0]))
         except ZeroDivisionError:
             self.exception_handling(self.division_by_zero_mess)
@@ -280,8 +281,8 @@ class Calculator(QMainWindow):
         self.enter_state = True
 
         if self.is_exception:               # Разблокировать кнопки
-            self.disable_buttons(False)
-        self.is_exception = False
+            self.clear_all()
+            return
 
         # Ввод целого числа
         self.int_part = True
@@ -341,7 +342,11 @@ class Calculator(QMainWindow):
         int_digits = len(result_str.split('.')[0])
         dec_digits = len(result_str.split('.')[1]) if '.' in result_str else 0
         if int_digits + dec_digits > 16:
-            self.EnterReg.setText(f"{self.result:.15e}")
+            try:
+                self.EnterReg.setText(f"{self.result:.15e}")
+            except OverflowError:
+                self.exception_handling(self.overflow_mess)
+                return
         else:
             self.EnterReg.setText(str(self.result))
 
@@ -425,14 +430,16 @@ class Calculator(QMainWindow):
 
     def exception_handling(self, exception_type: str):
         self.is_exception = True
+        # self.clear_entry()
+        # self.operand1 = 0
+        # self.operator = None
+
         self.disable_buttons(True)
 
         self.EnterReg.setText(exception_type)
+
         # Регулируем размер регистра вывода
         self.adjust_entry_font_size()
-
-        self.result = 0
-        self.expression_evaluated = True
 
     def disable_buttons(self, is_disable: bool):
         self.btn_point.setDisabled(is_disable)
@@ -468,7 +475,8 @@ class Calculator(QMainWindow):
 
     def clear_entry(self):
         if self.is_exception:               # Разблокировать кнопки
-            self.disable_buttons(False)
+            self.clear_all()
+            return
 
         self.enter_state = True
         self.int_part = True
@@ -484,8 +492,10 @@ class Calculator(QMainWindow):
     def clear_all(self):
         if self.is_exception:               # Разблокировать кнопки
             self.disable_buttons(False)
+            self.is_exception = False
 
         self.enter_state = True
+        self.expression_evaluated = False
         self.int_part = True
         self.operand_is_changed = False
         self.EnterReg.setText("0")
@@ -493,6 +503,7 @@ class Calculator(QMainWindow):
         self.operand1 = 0
         self.operand2 = 0
         self.result = 0
+        self.operator = None
         self.digits_count = 0
 
         # Регулируем размер регистра вывода
