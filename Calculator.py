@@ -160,7 +160,7 @@ class Calculator(QMainWindow):
         self.btn_c.clicked.connect(self.clear_all)
 
     def on_btn_clicked_num(self, num):
-        if self.digits_count >= 16:
+        if self.digits_count >= 16 or self.digits_count == 0 and num == 0:
             return
 
         if self.is_exception:               # Разблокировать кнопки
@@ -191,11 +191,6 @@ class Calculator(QMainWindow):
         self.adjust_entry_font_size()
 
     def on_btn_clicked_backspace(self):
-        # if self.is_exception:               # Разблокировать кнопки
-        #     self.disable_buttons(False)
-        #     self.clear_all()
-        # self.is_exception = False
-
         if 'e' in str(self.EnterReg.text()):
             return
 
